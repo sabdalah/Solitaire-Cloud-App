@@ -10,3 +10,8 @@ Needs:
 dynamic IP fetch of ec2 instance (currently needs to be updated per instance in secrets due to troubleshooting)
 Security with ec2
 
+
+Link to see  a Demo of how it works:
+https://youtu.be/Ti7bD071rZk
+
+If you see any failed actions most likely I am updating the repo after I have run terraform destroy. Without the infrastructure there is failure. :D
