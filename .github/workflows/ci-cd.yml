@@ -1,0 +1,47 @@
+name: Solitaire CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - sabdalah-branch
+      - sgusain-branch
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./sawayama-solitaire
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/sawayama-solitaire:latest
+
+          #it is here every single F time
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Connect to EC2 and pull/run Docker image
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_TOKEN }}
+            docker pull ${{ secrets.DOCKER_USERNAME }}/sawayama-solitaire:latest
+            docker stop solitaire || true
+            docker rm solitaire || true
+            docker run -d --name solitaire -p 80:80 ${{ secrets.DOCKER_USERNAME }}/sawayama-solitaire:latest
+          EOF
